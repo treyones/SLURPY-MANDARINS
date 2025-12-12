@@ -30,7 +30,7 @@ function animateFruitDrop(cellPos, cb){
   const startAnim = ()=>{
     const canvasRect = canvas.getBoundingClientRect();
     const displayCell = canvasRect.width / GRID;
-    const largeFruitsSet = new Set(['grape','banana','strawberry']);
+    const largeFruitsSet = new Set(['grape','banana','strawberry','apple']);
     const fruitType = cellPos.type || 'mandarin';
     let size = Math.max(36, Math.min(80, Math.floor(displayCell * 1.15)));
     if(largeFruitsSet.has(fruitType)){
@@ -523,7 +523,7 @@ function draw(){
   if(fimg && fimg.complete && fimg.naturalWidth){
     const pad = Math.max(2, Math.floor(CELL*0.08));
     const base = Math.max(4, Math.floor(CELL - pad*2));
-    const largeFruitsSet = new Set(['grape','banana','strawberry']);
+    const largeFruitsSet = new Set(['grape','banana','strawberry','apple']);
     const fscale = largeFruitsSet.has(ftype) ? 2 : 1; // 2x for these fruits
     const w = Math.min(160, Math.max(4, Math.floor(base * 1.15 * fscale)));
     const xpx = Math.floor(food.x*CELL + (CELL - w)/2);
