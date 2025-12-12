@@ -107,17 +107,12 @@ let audioUnlocked = false;
 let eatBuffer = null;
 let eatAudio = null;
 let eatAudioReady = false;
-const EAT_SOUND_URL = 'Slurp - Sound Effect (HD).mp3';
+
 function loadEatSound(){
-  // Use HTMLAudioElement only to avoid decoding errors in WebAudio.
-  try{
-    eatAudio = new Audio(EAT_SOUND_URL);
-    eatAudio.preload = 'auto';
-    eatAudio.addEventListener('canplaythrough', ()=>{ eatAudioReady = true; }, {once:true});
-    eatAudio.load();
-  }catch(e){ console.warn('Failed to create eat audio element', e); }
+  // Audio file loading disabled due to server range request issues
+  // Falling back to synthesized sound in playSound()
 }
-// begin loading sample
+// begin game initialization
 loadEatSound();
 
 // fruit SVGs and preloaded images for variety of food drops
@@ -158,34 +153,25 @@ function unlockAudio(){
 }
 
 function playSound(type){
-  // Prefer the provided audio file for the eat sound. If an HTMLAudio element
-  // was created, try to play it immediately (clone to allow overlapping).
+  // Fruit eating sound effects
   if(type === 'eat'){
-    if(eatAudio){
-      try{
-        const a = eatAudio.cloneNode();
-        a.volume = 1.0;
-        a.play().catch(()=>{});
-        return;
-      }catch(e){ console.warn('playSound eat audio element error', e); }
-    }
-    // If we decoded a buffer and WebAudio is ready, use it
-    if(eatBuffer && audioCtx && audioUnlocked){
+    // Generate synthesized fruit eating sound
+    if(audioCtx && audioUnlocked){
       try{
         const now = audioCtx.currentTime;
-        const src = audioCtx.createBufferSource();
-        src.buffer = eatBuffer;
+        const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
-        src.connect(g); g.connect(audioCtx.destination);
-        g.gain.setValueAtTime(0.0001, now);
-        g.gain.linearRampToValueAtTime(1.0, now+0.02);
-        g.gain.linearRampToValueAtTime(0.0001, now+0.6);
-        src.start(now);
-        src.stop(now+1.0);
-        return;
-      }catch(e){ console.warn('playSound eat buffer error', e); }
+        o.type = 'sine';
+        o.frequency.setValueAtTime(800, now);
+        o.frequency.linearRampToValueAtTime(400, now+0.15);
+        g.gain.setValueAtTime(0.15, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now+0.2);
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start(now);
+        o.stop(now+0.2);
+      }catch(e){ console.warn('playSound eat oscillator error', e); }
     }
-    // If no sample available, do nothing for eat (no oscillator fallback)
     return;
   }
 
@@ -461,8 +447,13 @@ document.addEventListener('webkitfullscreenchange', ()=>{ if(isFullscreen()) adj
 
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  // grid background
-  ctx.fillStyle = '#071029';
+  // gradient background with colorful theme
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, '#FFB6C1');
+  gradient.addColorStop(0.33, '#87CEEB');
+  gradient.addColorStop(0.66, '#FFD700');
+  gradient.addColorStop(1, '#FF69B4');
+  ctx.fillStyle = gradient;
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
   // draw food (use selected fruit image when available)
@@ -477,9 +468,15 @@ function draw(){
     drawCell(food.x, food.y);
   }
 
-  // draw snake
+  // draw snake: head red, body random shades of green from very light to very dark
   for(let i=0;i<snake.length;i++){
-      ctx.fillStyle = i===0 ? '#ff3b3b' : 'hsl(120,60%,' + (60 - Math.floor((i-1)/(snake.length-1) * 30)) + '%)'; // Head red, body shades of green
+    if(i===0){
+      ctx.fillStyle = '#ff3b3b';
+    } else {
+      // Random green shade from light (80%) to dark (20%) lightness
+      const lightness = 80 - Math.random() * 60;
+      ctx.fillStyle = 'hsl(120,60%,' + Math.round(lightness) + '%)';
+    }
     drawCell(snake[i].x, snake[i].y);
   }
 }
@@ -580,13 +577,6 @@ resizeCanvas();
 
 // show start menu and prepare a preview (do not start until user picks)
 if(startMenu){
-  // insert title if not present
-  if(!startMenu.querySelector('.start-title')){
-    const titleEl = document.createElement('h1');
-    titleEl.className = 'start-title';
-    titleEl.textContent = 'HUNGRY CATERPILLAR';
-    startMenu.insertBefore(titleEl, startMenu.firstChild);
-  }
   startMenu.classList.remove('hidden');
   console.log('Start menu displayed');
   // difficulty selection buttons in menu
