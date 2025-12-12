@@ -3,7 +3,7 @@
 html,body{height:100%;margin:0}
 body{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7B4A7D,#5A8FC8,#D4A74D,#B84368,#4A8B6E);color:#333;min-height:100vh}
 main{width:min(480px,95vw);text-align:center}
-.start-title{margin:0 0 16px 0;font-size:2.8em;font-weight:700;font-family:'Indie Flower',cursive;color:#fff;text-shadow:3px 3px 0px rgba(0,0,0,0.2),5px 5px 10px rgba(0,0,0,0.15);letter-spacing:2px;font-style:italic;background:linear-gradient(90deg,#FF1493,#FFD700,#FF69B4,#87CEEB);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(2px 2px 3px rgba(0,0,0,0.3))}
+.start-title{margin:18px 0 12px 0;font-size:2.8em;font-weight:700;font-family:'Indie Flower',cursive;color:#fff;text-shadow:3px 3px 0px rgba(0,0,0,0.2),5px 5px 10px rgba(0,0,0,0.15);letter-spacing:2px;font-style:italic;background:linear-gradient(90deg,#FF1493,#FFD700,#FF69B4,#87CEEB);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(2px 2px 3px rgba(0,0,0,0.3));display:inline-block;position:relative;z-index:4000}
 #hud{display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:8px}
 #score{font-weight:600;color:#333}
 canvas{display:block;margin:0 auto;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.2);width:100%;max-width:420px;height:auto}
@@ -141,6 +141,22 @@ button:active{transform:translateY(1px)}
 .canvas-wrapper{position:relative;display:inline-block;width:100%}
 
 .overlay-btn{position:absolute;right:8px;top:8px;z-index:60;background:rgba(255,255,255,0.7);border:1px solid rgba(255,105,180,0.3);color:#333;padding:10px 12px;border-radius:10px;backdrop-filter:blur(6px);cursor:pointer;font-size:20px}
+
+/* cheering commentary bubble */
+.cheer{
+	pointer-events:none;
+	opacity:0;
+	transition:transform 260ms cubic-bezier(.2,.9,.2,1), opacity 360ms ease;
+	font-size:20px;
+	font-weight:700;
+	color:#fff;
+	text-shadow:0 4px 10px rgba(0,0,0,0.35);
+	padding:8px 16px;
+	border-radius:999px;
+	background:linear-gradient(90deg,#ff9a9e,#fad0c4);
+	transform-origin:center;
+	z-index:5000;
+}
 .overlay-btn:active{transform:translateY(1px)}
 
 @media (max-width:420px){

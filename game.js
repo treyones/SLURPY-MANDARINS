@@ -30,14 +30,19 @@ function animateFruitDrop(cellPos, cb){
   const startAnim = ()=>{
     const canvasRect = canvas.getBoundingClientRect();
     const displayCell = canvasRect.width / GRID;
-    const size = Math.max(36, Math.min(80, Math.floor(displayCell * 1.15)));
+    const largeFruitsSet = new Set(['grape','banana','strawberry']);
+    const fruitType = cellPos.type || 'mandarin';
+    let size = Math.max(36, Math.min(80, Math.floor(displayCell * 1.15)));
+    if(largeFruitsSet.has(fruitType)){
+      // increase visual pixel size by 100% (2x) for these fruits
+      size = Math.min(Math.floor(canvasRect.width * 0.9), Math.floor(size * 2));
+    }
     const startX = canvasRect.left + canvasRect.width/2 - size/2;
     const startY = canvasRect.top - size - 8;
     const destX = canvasRect.left + (cellPos.x * displayCell) + (displayCell - size)/2;
     const destY = canvasRect.top + (cellPos.y * displayCell) + (displayCell - size)/2;
 
     const img = document.createElement('img');
-    const fruitType = cellPos.type || 'mandarin';
     img.src = fruitDataUrls[fruitType] || fruitDataUrls['mandarin'];
     img.className = 'drop-fruit';
     img.style.position = 'fixed';
@@ -198,6 +203,60 @@ function playSound(type){
   }
 }
 
+  // cheering phrases shown when player eats a fruit
+  const CHEERS = [
+    'Good job!',
+    'Nice job!',
+    'WOW!',
+    'Amazing!',
+    'Oh my god!'
+  ];
+
+  function showCheer(text){
+    try{
+      const el = document.createElement('div');
+      el.className = 'cheer';
+      el.textContent = text;
+      const rect = canvas.getBoundingClientRect();
+      el.style.opacity = '0';
+      // prefer appending inside the canvas wrapper so it's always visible above canvas
+      const container = canvasWrapper || document.body;
+      if(container === canvasWrapper){
+        el.style.position = 'absolute';
+        const wrapRect = canvasWrapper.getBoundingClientRect();
+        el.style.left = (wrapRect.width/2) + 'px';
+        el.style.top = (wrapRect.height*0.12 + (Math.random()-0.5)*40) + 'px';
+        el.style.transform = 'translateX(-50%) scale(0.85)';
+        canvasWrapper.appendChild(el);
+      } else {
+        el.style.position = 'fixed';
+        el.style.left = (rect.left + rect.width/2) + 'px';
+        el.style.top = (rect.top + rect.height*0.12 + (Math.random()-0.5)*40) + 'px';
+        el.style.transform = 'translateX(-50%) scale(0.85)';
+        document.body.appendChild(el);
+      }
+      // animate in
+      requestAnimationFrame(()=>{
+        el.style.opacity = '1';
+        el.style.transform = 'translateX(-50%) scale(1)';
+      });
+      // optional speech (respect browser autoplay/user gesture rules)
+      try{
+        if(window.speechSynthesis && Math.random() < 0.6){
+          const u = new SpeechSynthesisUtterance(text);
+          u.rate = 1.05; u.pitch = 1.1;
+          speechSynthesis.speak(u);
+        }
+      }catch(e){}
+      // fade out and remove
+      setTimeout(()=>{
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(-50%) translateY(-18px) scale(0.95)';
+      }, 900);
+      el.addEventListener('transitionend', ()=>{ if(el && el.parentNode) el.remove(); }, {once:true});
+    }catch(e){ console.warn('showCheer error', e); }
+  }
+
 function computeSpeed(){
   // speed decreases (faster) by 8ms every 5 points, min 40
   return Math.max(40, baseSpeed - Math.floor(score/5)*8);
@@ -251,6 +310,8 @@ function step(){
     speed = computeSpeed();
     clearInterval(timer); timer = setInterval(step, speed);
     playSound('eat');
+    // cheering commentary
+    try{ const phrase = CHEERS[Math.floor(Math.random()*CHEERS.length)]; showCheer(phrase); }catch(e){}
     placeFood();
     // animate fruit drop for new food
     animateFruitDrop(food, ()=>{ /* animation complete */ });
@@ -461,8 +522,13 @@ function draw(){
   const fimg = fruitImgs[ftype];
   if(fimg && fimg.complete && fimg.naturalWidth){
     const pad = Math.max(2, Math.floor(CELL*0.08));
-      const w = Math.min(80, Math.max(4, Math.floor(CELL - pad*2) * 1.15)); // Enlarge fruit
-    ctx.drawImage(fimg, Math.floor(food.x*CELL + pad), Math.floor(food.y*CELL + pad), w, w);
+    const base = Math.max(4, Math.floor(CELL - pad*2));
+    const largeFruitsSet = new Set(['grape','banana','strawberry']);
+    const fscale = largeFruitsSet.has(ftype) ? 2 : 1; // 2x for these fruits
+    const w = Math.min(160, Math.max(4, Math.floor(base * 1.15 * fscale)));
+    const xpx = Math.floor(food.x*CELL + (CELL - w)/2);
+    const ypx = Math.floor(food.y*CELL + (CELL - w)/2);
+    ctx.drawImage(fimg, xpx, ypx, w, w);
   } else {
     ctx.fillStyle = '#ff6666';
     drawCell(food.x, food.y);
