@@ -18,26 +18,27 @@ function startGameWithDifficulty(diff){
     baseSpeed = DIFFICULTY_PRESETS['normal'];
   }
   if(startMenu) startMenu.classList.add('hidden');
-  // animate a mandarin dropping into the initial food position, then reset/start game
-  const initialFood = food; // placeFood was called during preview init
-  animateMandarinDrop(initialFood, ()=>{ reset(); });
+  // animate a fruit dropping into the initial food position, then reset/start game
+  const initialFood = food; // placeFood was called during preview init (food.type present)
+  animateFruitDrop(initialFood, ()=>{ reset(); });
 }
 
-// animate a mandarin dropping from top-center into the given cell position
-function animateMandarinDrop(cellPos, cb){
+// animate a fruit dropping from top-center into the given cell position
+function animateFruitDrop(cellPos, cb){
   if(!cellPos) { if(cb) cb(); return; }
   // ensure image loaded
   const startAnim = ()=>{
     const canvasRect = canvas.getBoundingClientRect();
     const displayCell = canvasRect.width / GRID;
-    const size = Math.max(32, Math.min(64, Math.floor(displayCell * 0.9)));
+    const size = Math.max(36, Math.min(80, Math.floor(displayCell * 1.15)));
     const startX = canvasRect.left + canvasRect.width/2 - size/2;
     const startY = canvasRect.top - size - 8;
     const destX = canvasRect.left + (cellPos.x * displayCell) + (displayCell - size)/2;
     const destY = canvasRect.top + (cellPos.y * displayCell) + (displayCell - size)/2;
 
     const img = document.createElement('img');
-    img.src = mandarinDataUrl;
+    const fruitType = cellPos.type || 'mandarin';
+    img.src = fruitDataUrls[fruitType] || fruitDataUrls['mandarin'];
     img.className = 'drop-fruit';
     img.style.position = 'fixed';
     img.style.left = startX + 'px';
@@ -63,8 +64,12 @@ function animateMandarinDrop(cellPos, cb){
     setTimeout(()=>{ if(document.body.contains(img)) { img.remove(); if(cb) cb(); } }, 900);
   };
 
-  if(mandImg.complete && mandImg.naturalWidth){ startAnim(); }
-  else mandImg.onload = startAnim;
+  // ensure at least one fruit image has loaded; check the specific fruit if possible
+  const checkImg = (()=>{
+    try{ const t = cellPos && cellPos.type ? fruitImgs[cellPos.type] : null; return t || Object.values(fruitImgs)[0]; }catch(e){ return Object.values(fruitImgs)[0]; }
+  })();
+  if(checkImg && checkImg.complete && checkImg.naturalWidth){ startAnim(); }
+  else if(checkImg) checkImg.onload = startAnim;
 }
 
 // helper to attempt entering native fullscreen or fallback to pseudo
@@ -115,22 +120,23 @@ function loadEatSound(){
 // begin loading sample
 loadEatSound();
 
-// mandarin image (inline SVG) used for food and drop animation
-const mandarinSvg = `<?xml version="1.0" encoding="utf-8"?>
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
-  <defs>
-    <radialGradient id='g' cx='30%' cy='30%'>
-      <stop offset='0%' stop-color='#fff7e6'/>
-      <stop offset='40%' stop-color='#ffb347'/>
-      <stop offset='100%' stop-color='#ff7f11'/>
-    </radialGradient>
-  </defs>
-  <circle cx='50' cy='50' r='40' fill='url(#g)' stroke='#e86a00' stroke-width='3'/>
-  <path d='M68 25c6-2 12 1 10 3-2 2-8 4-12 3' fill='none' stroke='#2b7a00' stroke-width='3' stroke-linecap='round'/>
-  <path d='M48 18c-1-6-8-9-11-7-3 2 0 8 2 10' fill='none' stroke='#2b7a00' stroke-width='3' stroke-linecap='round'/>
-</svg>`;
-const mandarinDataUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(mandarinSvg);
-const mandImg = new Image(); mandImg.src = mandarinDataUrl;
+// fruit SVGs and preloaded images for variety of food drops
+const FRUIT_TYPES = ['mandarin','grape','apple','strawberry','kiwifruit','watermelon','banana'];
+const fruitSvgs = {
+  mandarin: `<?xml version="1.0" encoding="utf-8"?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='#ff9f43' stroke='#e86a00' stroke-width='3'/><path d='M48 18c-1-6-8-9-11-7' fill='none' stroke='#2b7a00' stroke-width='3' stroke-linecap='round'/></svg>`,
+  grape: `<?xml version="1.0"?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='#6f2da8'><circle cx='40' cy='50' r='12'/><circle cx='54' cy='40' r='12'/><circle cx='68' cy='52' r='12'/><circle cx='50' cy='64' r='12'/></g><path d='M48 28c4-6 10-8 14-6' fill='none' stroke='#2b7a00' stroke-width='3'/></svg>`,
+  apple: `<?xml version="1.0"?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='54' r='18' fill='#d43d3d' stroke='#8b1f1f' stroke-width='2'/><path d='M54 28c-2-6-10-8-14-4' fill='none' stroke='#2b7a00' stroke-width='3'/></svg>`,
+  strawberry: `<?xml version="1.0"?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 22c16 0 26 18 26 30 0 18-18 34-26 34s-26-16-26-34c0-12 10-30 26-30z' fill='#ff4d6d' stroke='#b22b47' stroke-width='2'/><g fill='#fff' opacity='0.9'><circle cx='46' cy='50' r='1.6'/><circle cx='54' cy='58' r='1.6'/></g></svg>`,
+  kiwifruit: `<?xml version="1.0"?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='30' fill='#6fbf3f' stroke='#5a9a2f' stroke-width='3'/><circle cx='50' cy='50' r='18' fill='#fff1c8'/><circle cx='50' cy='50' r='12' fill='#7a4828'/></svg>`,
+  watermelon: `<?xml version="1.0"?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='36' fill='#ff6b81' stroke='#1f8a3a' stroke-width='8'/><path d='M30 50c6-6 12-10 20-10s14 4 20 10' fill='none' stroke='#000' stroke-width='1'/></svg>`,
+  banana: `<?xml version="1.0"?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M20 54c8-18 36-30 60-22c-6 18-28 34-48 36c-8 1-12-6-12-14z' fill='#ffd24a' stroke='#d4a82a' stroke-width='2'/></svg>`
+};
+const fruitDataUrls = {};
+const fruitImgs = {};
+FRUIT_TYPES.forEach(k=>{
+  fruitDataUrls[k] = 'data:image/svg+xml;utf8,' + encodeURIComponent(fruitSvgs[k]);
+  const im = new Image(); im.src = fruitDataUrls[k]; fruitImgs[k] = im;
+});
 
 // game state variables
 let snake = [];
@@ -228,7 +234,11 @@ function reset(){
 function placeFood(){
   while(true){
     const pos = {x: Math.floor(Math.random()*GRID), y: Math.floor(Math.random()*GRID)};
-    if(!snake.some(s => s.x===pos.x && s.y===pos.y)){ food = pos; break; }
+    if(!snake.some(s => s.x===pos.x && s.y===pos.y)){
+      const type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
+      food = { x: pos.x, y: pos.y, type };
+      break;
+    }
   }
 }
 
@@ -256,8 +266,8 @@ function step(){
     clearInterval(timer); timer = setInterval(step, speed);
     playSound('eat');
     placeFood();
-    // animate mandarin drop for new food
-    animateMandarinDrop(food, ()=>{ /* animation complete */ });
+    // animate fruit drop for new food
+    animateFruitDrop(food, ()=>{ /* animation complete */ });
   } else {
     snake.pop();
   }
@@ -268,7 +278,16 @@ function gameOver(){
   running = false;
   clearInterval(timer);
   pauseBtn.textContent = 'Paused';
-  setTimeout(()=> alert('Game Over — score: '+score), 50);
+  setTimeout(()=>{
+    const again = confirm('Game Over — score: '+score + "\n\nRestart to main menu?");
+    if(again){
+      if(startMenu) startMenu.classList.remove('hidden');
+      snake = [{x: Math.floor(GRID/2), y: Math.floor(GRID/2)}];
+      placeFood();
+      draw();
+      pauseBtn.textContent = 'Pause';
+    }
+  }, 50);
 }
 
 // Fullscreen handlers
@@ -446,12 +465,13 @@ function draw(){
   ctx.fillStyle = '#071029';
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  // draw food
-  // draw mandarin fruit (use image when available, fallback to circle)
-  if(mandImg && mandImg.complete && mandImg.naturalWidth){
+  // draw food (use selected fruit image when available)
+  const ftype = (food && food.type) ? food.type : 'mandarin';
+  const fimg = fruitImgs[ftype];
+  if(fimg && fimg.complete && fimg.naturalWidth){
     const pad = Math.max(2, Math.floor(CELL*0.08));
-    const w = Math.max(4, Math.floor(CELL - pad*2));
-    ctx.drawImage(mandImg, Math.floor(food.x*CELL + pad), Math.floor(food.y*CELL + pad), w, w);
+      const w = Math.min(80, Math.max(4, Math.floor(CELL - pad*2) * 1.15)); // Enlarge fruit
+    ctx.drawImage(fimg, Math.floor(food.x*CELL + pad), Math.floor(food.y*CELL + pad), w, w);
   } else {
     ctx.fillStyle = '#ff6666';
     drawCell(food.x, food.y);
@@ -459,7 +479,7 @@ function draw(){
 
   // draw snake
   for(let i=0;i<snake.length;i++){
-    ctx.fillStyle = i===0 ? '#7ce3ff' : '#2bb0d6';
+      ctx.fillStyle = i===0 ? '#ff3b3b' : 'hsl(120,60%,' + (60 - Math.floor((i-1)/(snake.length-1) * 30)) + '%)'; // Head red, body shades of green
     drawCell(snake[i].x, snake[i].y);
   }
 }
@@ -560,6 +580,13 @@ resizeCanvas();
 
 // show start menu and prepare a preview (do not start until user picks)
 if(startMenu){
+  // insert title if not present
+  if(!startMenu.querySelector('.start-title')){
+    const titleEl = document.createElement('h1');
+    titleEl.className = 'start-title';
+    titleEl.textContent = 'HUNGRY CATERPILLAR';
+    startMenu.insertBefore(titleEl, startMenu.firstChild);
+  }
   startMenu.classList.remove('hidden');
   console.log('Start menu displayed');
   // difficulty selection buttons in menu
